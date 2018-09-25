@@ -46,7 +46,7 @@ class JarScanningCordappLoaderTest {
     fun `test that classes that aren't in cordapps aren't loaded`() {
         // Basedir will not be a corda node directory so the dummy flow shouldn't be recognised as a part of a cordapp
         val loader = JarScanningCordappLoader.fromDirectories(listOf(Paths.get(".")))
-        assertThat(loader.cordapps).containsOnly(loader.coreCordapp)
+        assertThat(loader.cordapps).isEmpty()
     }
 
     @Test
@@ -55,9 +55,9 @@ class JarScanningCordappLoaderTest {
         val loader = JarScanningCordappLoader.fromJarUrls(listOf(isolatedJAR))
 
         val actual = loader.cordapps.toTypedArray()
-        assertThat(actual).hasSize(2)
+        assertThat(actual).hasSize(1)
 
-        val actualCordapp = actual.single { it != loader.coreCordapp }
+        val actualCordapp = actual.single()
         assertThat(actualCordapp.contractClassNames).isEqualTo(listOf(isolatedContractId))
         assertThat(actualCordapp.initiatedFlows.single().name).isEqualTo("net.corda.finance.contracts.isolated.IsolatedDummyFlow\$Acceptor")
         assertThat(actualCordapp.rpcFlows).isEmpty()
@@ -74,7 +74,7 @@ class JarScanningCordappLoaderTest {
 
         val actual = loader.cordapps.toTypedArray()
         // One core cordapp, one cordapp from this source tree. In gradle it will also pick up the node jar.
-        assertThat(actual.size == 2 || actual.size == 3).isTrue()
+        assertThat(actual.size == 1 || actual.size == 2).isTrue()
 
         val actualCordapp = actual.single { !it.initiatedFlows.isEmpty() }
         assertThat(actualCordapp.initiatedFlows).first().hasSameClassAs(DummyFlow::class.java)

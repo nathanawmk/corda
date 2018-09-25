@@ -5,16 +5,10 @@ import net.corda.core.internal.notary.NotaryServiceFlow
 import net.corda.core.internal.notary.TrustedAuthorityNotaryService
 import net.corda.core.schemas.MappedSchema
 import net.corda.node.services.api.ServiceHubInternal
-import net.corda.node.services.schema.NodeSchemaService
 import java.security.PublicKey
 
 /** An embedded notary service that uses the node's database to store committed states. */
 class SimpleNotaryService(override val services: ServiceHubInternal, override val notaryIdentityKey: PublicKey) : TrustedAuthorityNotaryService() {
-    companion object {
-        @JvmStatic
-        fun getSchemas(): List<MappedSchema> = listOf(NodeSchemaService.NodeNotaryV1)
-    }
-
     private val notaryConfig = services.configuration.notary
             ?: throw IllegalArgumentException("Failed to register ${this::class.java}: notary configuration not present")
 
@@ -30,4 +24,15 @@ class SimpleNotaryService(override val services: ServiceHubInternal, override va
 
     override fun start() {}
     override fun stop() {}
+}
+
+// Entities used by a Notary
+object NodeNotary
+
+object NodeNotaryV1 : MappedSchema(schemaFamily = NodeNotary.javaClass, version = 1,
+        mappedTypes = listOf(PersistentUniquenessProvider.BaseComittedState::class.java,
+                PersistentUniquenessProvider.Request::class.java,
+                PersistentUniquenessProvider.CommittedState::class.java
+        )) {
+    override val migrationResource = "node-notary.changelog-master"
 }

@@ -44,7 +44,6 @@ import java.io.RandomAccessFile
 import java.lang.management.ManagementFactory
 import java.net.InetAddress
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.time.DayOfWeek
 import java.time.ZonedDateTime
 import java.util.*
@@ -272,7 +271,8 @@ open class NodeStartup : CordaCliWrapper("corda", "Runs a Corda Node") {
         }
 
         val nodeInfo = node.start()
-        logLoadedCorDapps(node.services.cordappProvider.cordapps)
+        val loadedCodapps = node.services.cordappProvider.cordapps.filter { !it.isLoaded }
+        logLoadedCorDapps(loadedCodapps)
 
         node.nodeReadyFuture.thenMatch({
             // Elapsed time in seconds. We used 10 / 100.0 and not directly / 1000.0 to only keep two decimal digits.
