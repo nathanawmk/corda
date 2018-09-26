@@ -21,7 +21,11 @@ import org.junit.Test
 class FinalityFlowTests : WithFinality {
     companion object {
         private val CHARLIE = TestIdentity(CHARLIE_NAME, 90).party
-        private val classMockNet = InternalMockNetwork(cordappsForAllNodes = cordappsForPackages("net.corda.finance.contracts.asset","net.corda.finance.schemas"))
+        private val classMockNet = InternalMockNetwork(cordappsForAllNodes = cordappsForPackages(
+                "net.corda.finance.contracts.asset",
+                "net.corda.finance.schemas",
+                "net.corda.core.flows.mixins"
+        ))
 
         @JvmStatic
         @AfterClass
@@ -33,7 +37,6 @@ class FinalityFlowTests : WithFinality {
     private val aliceNode = makeNode(ALICE_NAME)
     private val bobNode = makeNode(BOB_NAME)
 
-    private val alice = aliceNode.info.singleIdentity()
     private val bob = bobNode.info.singleIdentity()
     private val notary = mockNet.defaultNotaryIdentity
 
@@ -42,7 +45,7 @@ class FinalityFlowTests : WithFinality {
         val stx = aliceNode.signCashTransactionWith(bob)
 
         assert.that(
-            aliceNode.finalise(stx),
+            aliceNode.finalise(stx, bob),
                 willReturn(
                         requiredSignatures(1)
                                 and visibleTo(bobNode)))
@@ -59,11 +62,9 @@ class FinalityFlowTests : WithFinality {
     }
 
     private fun TestStartedNode.signCashTransactionWith(other: Party): SignedTransaction {
-        val amount = 1000.POUNDS.issuedBy(alice.ref(0))
+        val amount = 1000.POUNDS.issuedBy(info.singleIdentity().ref(0))
         val builder = TransactionBuilder(notary)
         Cash().generateIssue(builder, amount, other, notary)
-
         return services.signInitialTransaction(builder)
     }
-
 }

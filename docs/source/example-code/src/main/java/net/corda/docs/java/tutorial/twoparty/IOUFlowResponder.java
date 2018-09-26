@@ -41,6 +41,8 @@ public class IOUFlowResponder extends FlowLogic<Void> {
 
         subFlow(new SignTxFlow(otherPartySession, SignTransactionFlow.Companion.tracker()));
 
+        subFlow(new ReceiveFinalityFlow(otherPartySession));
+
         return null;
     }
 }

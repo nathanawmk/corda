@@ -7,10 +7,12 @@ import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.identity.PartyAndCertificate
+import net.corda.core.internal.cordapp.CordappImpl
 import net.corda.core.node.NodeInfo
 import net.corda.core.transactions.WireTransaction
 import net.corda.core.utilities.loggerFor
 import net.corda.nodeapi.BrokerRpcSslOptions
+import net.corda.nodeapi.internal.PLATFORM_VERSION
 import net.corda.nodeapi.internal.config.MutualSslConfiguration
 import net.corda.nodeapi.internal.registerDevP2pCertificates
 import net.corda.nodeapi.internal.createDevNodeCa
@@ -20,6 +22,7 @@ import net.corda.serialization.internal.amqp.AMQP_ENABLED
 import net.corda.testing.internal.stubs.CertificateStoreStubs
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.security.KeyPair
 import javax.security.auth.x500.X500Principal
 
@@ -135,4 +138,26 @@ fun createWireTransaction(inputs: List<StateRef>,
                           privacySalt: PrivacySalt = PrivacySalt()): WireTransaction {
     val componentGroups = WireTransaction.createComponentGroups(inputs, outputs, commands, attachments, notary, timeWindow)
     return WireTransaction(componentGroups, privacySalt)
+}
+
+fun emptyCordappImpl(): CordappImpl {
+    return CordappImpl(
+            contractClassNames = emptyList(),
+            initiatedFlows = emptyList(),
+            rpcFlows = emptyList(),
+            serviceFlows = emptyList(),
+            schedulableFlows = emptyList(),
+            services = emptyList(),
+            serializationWhitelists = emptyList(),
+            serializationCustomSerializers = emptyList(),
+            customSchemas = emptySet(),
+            allFlows = emptyList(),
+            jarPath = Paths.get(CordappImpl.UNKNOWN_VALUE).toUri().toURL(),
+            jarHash = SecureHash.zeroHash,
+            shortName = CordappImpl.UNKNOWN_VALUE,
+            vendor = CordappImpl.UNKNOWN_VALUE,
+            version = CordappImpl.UNKNOWN_VALUE,
+            minimumPlatformVersion = 1,
+            targetPlatformVersion = PLATFORM_VERSION
+    )
 }

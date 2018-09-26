@@ -1,6 +1,7 @@
 package net.corda.testing.driver
 
 import net.corda.core.DoNotImplement
+import net.corda.nodeapi.internal.PLATFORM_VERSION
 import net.corda.testing.node.internal.MutableTestCorDapp
 import java.net.URL
 import java.nio.file.Path
@@ -10,11 +11,11 @@ import java.nio.file.Path
  */
 @DoNotImplement
 interface TestCorDapp {
-
     val name: String
     val title: String
     val version: String
     val vendor: String
+    val targetVersion: Int
 
     val classes: Set<Class<*>>
 
@@ -29,14 +30,18 @@ interface TestCorDapp {
      */
     class Factory {
         companion object {
-
             /**
              * Returns a builder-style [TestCorDapp] to easily generate different [TestCorDapp]s that have something in common.
              */
             @JvmStatic
-            fun create(name: String, version: String, vendor: String = "R3", title: String = name, classes: Set<Class<*>> = emptySet(), willResourceBeAddedBeToCorDapp: (fullyQualifiedName: String, url: URL) -> Boolean = MutableTestCorDapp.Companion::filterTestCorDappClass): TestCorDapp.Mutable {
-
-                return MutableTestCorDapp(name, version, vendor, title, classes, willResourceBeAddedBeToCorDapp)
+            fun create(name: String,
+                       version: String,
+                       vendor: String = "R3",
+                       title: String = name,
+                       targetVersion: Int = PLATFORM_VERSION,
+                       classes: Set<Class<*>> = emptySet(),
+                       willResourceBeAddedBeToCorDapp: (fullyQualifiedName: String, url: URL) -> Boolean = MutableTestCorDapp.Companion::filterTestCorDappClass): TestCorDapp.Mutable {
+                return MutableTestCorDapp(name, version, vendor, title, targetVersion, classes, willResourceBeAddedBeToCorDapp)
             }
         }
     }
@@ -51,6 +56,8 @@ interface TestCorDapp {
         fun withVersion(version: String): TestCorDapp.Mutable
 
         fun withVendor(vendor: String): TestCorDapp.Mutable
+
+        fun withTargetVersion(targetVersion: Int): TestCorDapp.Mutable
 
         fun withClasses(classes: Set<Class<*>>): TestCorDapp.Mutable
 

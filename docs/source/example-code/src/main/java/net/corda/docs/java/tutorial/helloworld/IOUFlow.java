@@ -14,22 +14,21 @@ import net.corda.core.transactions.TransactionBuilder;
 import net.corda.core.utilities.ProgressTracker;
 
 import static com.template.TemplateContract.TEMPLATE_CONTRACT_ID;
+import static java.util.Collections.*;
 
 // Replace TemplateFlow's definition with:
 @InitiatingFlow
 @StartableByRPC
 public class IOUFlow extends FlowLogic<Void> {
     private final Integer iouValue;
-    private final Party otherParty;
 
     /**
      * The progress tracker provides checkpoints indicating the progress of the flow to observers.
      */
     private final ProgressTracker progressTracker = new ProgressTracker();
 
-    public IOUFlow(Integer iouValue, Party otherParty) {
+    public IOUFlow(Integer iouValue) {
         this.iouValue = iouValue;
-        this.otherParty = otherParty;
     }
 
     @Override
@@ -47,7 +46,7 @@ public class IOUFlow extends FlowLogic<Void> {
         final Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0);
 
         // We create the transaction components.
-        IOUState outputState = new IOUState(iouValue, getOurIdentity(), otherParty);
+        IOUState outputState = new IOUState(iouValue, getOurIdentity());
         CommandData cmdType = new TemplateContract.Commands.Action();
         Command cmd = new Command<>(cmdType, getOurIdentity().getOwningKey());
 
@@ -60,7 +59,7 @@ public class IOUFlow extends FlowLogic<Void> {
         final SignedTransaction signedTx = getServiceHub().signInitialTransaction(txBuilder);
 
         // Finalising the transaction.
-        subFlow(new FinalityFlow(signedTx));
+        subFlow(new FinalityFlow(signedTx, emptyList()));
 
         return null;
     }

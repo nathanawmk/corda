@@ -48,4 +48,9 @@ interface Cordapp {
     val jarPath: URL
     val cordappClasses: List<String>
     val jarHash: SecureHash.SHA256
+    val shortName: String
+    val vendor: String
+    val version: String
+    val minimumPlatformVersion: Int
+    val targetPlatformVersion: Int
 }

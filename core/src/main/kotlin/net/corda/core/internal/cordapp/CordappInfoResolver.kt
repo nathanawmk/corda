@@ -1,5 +1,6 @@
 package net.corda.core.internal.cordapp
 
+import net.corda.core.internal.VisibleForTesting
 import net.corda.core.utilities.loggerFor
 import java.util.concurrent.ConcurrentHashMap
 
@@ -8,14 +9,14 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object CordappInfoResolver {
     private val logger = loggerFor<CordappInfoResolver>()
-    private val cordappClasses: ConcurrentHashMap<String, Set<CordappImpl.Info>> = ConcurrentHashMap()
+    private val cordappClasses: ConcurrentHashMap<String, Set<CordappImpl>> = ConcurrentHashMap()
 
-    // TODO use the StackWalker API once we migrate to Java 9+
-    private var cordappInfoResolver: () -> CordappImpl.Info? = {
+    // TODO Use the StackWalker API once we migrate to Java 9+
+    private var cordappInfoResolver: () -> CordappImpl? = {
         Exception().stackTrace
                 .mapNotNull { cordappClasses[it.className] }
                 // If there is more than one cordapp registered for a class name we can't determine the "correct" one and return null.
-                .firstOrNull { it.size < 2 }?.single()
+                .firstOrNull { it.size == 1 }?.single()
     }
 
     /*
@@ -23,8 +24,8 @@ object CordappInfoResolver {
      * This could happen when trying to run different versions of the same CorDapp on the same node.
      */
     @Synchronized
-    fun register(classes: List<String>, cordapp: CordappImpl.Info) {
-        classes.forEach {
+    fun register(cordapp: CordappImpl) {
+        cordapp.cordappClasses.forEach {
             if (cordappClasses.containsKey(it)) {
                 logger.warn("More than one CorDapp registered for $it.")
                 cordappClasses[it] = cordappClasses[it]!! + cordapp
@@ -41,15 +42,21 @@ object CordappInfoResolver {
      * In situations where a `[CordappProvider]` is available the CorDapp context should be obtained from there.
      *
      * @return Information about the CorDapp from which the invoker is called, null if called outside a CorDapp or the
-     * calling CorDapp cannot be reliably determined..
+     * calling CorDapp cannot be reliably determined.
      */
-    fun getCorDappInfo(): CordappImpl.Info? = cordappInfoResolver()
+    val currentCordapp: CordappImpl? get() = cordappInfoResolver()
+
+    /**
+     * Returns the target version of the current calling CorDapp. Defaults to 1 if there isn't one.
+     */
+    val currentTargetVersion: Int get() = currentCordapp?.targetPlatformVersion ?: 1
 
     /**
      * Temporarily switch out the internal resolver for another one. For use in testing.
      */
+    @VisibleForTesting
     @Synchronized
-    fun withCordappInfoResolution(tempResolver: () -> CordappImpl.Info?, block: () -> Unit) {
+    fun withCordappInfoResolution(tempResolver: () -> CordappImpl?, block: () -> Unit) {
         val resolver = cordappInfoResolver
         cordappInfoResolver = tempResolver
         try {
@@ -59,6 +66,7 @@ object CordappInfoResolver {
         }
     }
 
+    @VisibleForTesting
     internal fun clear() {
         cordappClasses.clear()
     }

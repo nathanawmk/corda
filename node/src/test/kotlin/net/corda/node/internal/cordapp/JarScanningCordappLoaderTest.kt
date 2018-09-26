@@ -4,7 +4,6 @@ import co.paralleluniverse.fibers.Suspendable
 import net.corda.core.flows.*
 import net.corda.node.VersionInfo
 import net.corda.node.cordapp.CordappLoader
-import net.corda.nodeapi.internal.PLATFORM_VERSION
 import net.corda.testing.node.internal.cordappsForPackages
 import net.corda.testing.node.internal.getTimestampAsDirectoryName
 import net.corda.testing.node.internal.packageInDirectory
@@ -113,9 +112,9 @@ class JarScanningCordappLoaderTest {
     fun `cordapp classloader sets target and min version to 1 if not specified`() {
         val jar = JarScanningCordappLoaderTest::class.java.getResource("versions/no-min-or-target-version.jar")!!
         val loader = JarScanningCordappLoader.fromJarUrls(listOf(jar), VersionInfo.UNKNOWN)
-        loader.cordapps.filter { !it.info.shortName.equals("corda-core") }.forEach {
-            assertThat(it.info.targetPlatformVersion).isEqualTo(1)
-            assertThat(it.info.minimumPlatformVersion).isEqualTo(1)
+        loader.cordapps.filter { it.shortName != "corda-core" }.forEach {
+            assertThat(it.targetPlatformVersion).isEqualTo(1)
+            assertThat(it.minimumPlatformVersion).isEqualTo(1)
         }
     }
 
@@ -126,9 +125,9 @@ class JarScanningCordappLoaderTest {
         val jar = JarScanningCordappLoaderTest::class.java.getResource("versions/min-2-target-3.jar")!!
         val loader = JarScanningCordappLoader.fromJarUrls(listOf(jar), VersionInfo.UNKNOWN)
         // exclude the core cordapp
-        val cordapp = loader.cordapps.filter { it.cordappClasses.contains("net.corda.core.internal.cordapp.CordappImpl")}.single()
-        assertThat(cordapp.info.targetPlatformVersion).isEqualTo(3)
-        assertThat(cordapp.info.minimumPlatformVersion).isEqualTo(2)
+        val cordapp = loader.cordapps.single { it.cordappClasses.contains("net.corda.core.internal.cordapp.CordappImpl")}
+        assertThat(cordapp.targetPlatformVersion).isEqualTo(3)
+        assertThat(cordapp.minimumPlatformVersion).isEqualTo(2)
     }
 
     @Test
@@ -137,9 +136,9 @@ class JarScanningCordappLoaderTest {
         val jar = JarScanningCordappLoaderTest::class.java.getResource("versions/min-2-no-target.jar")!!
         val loader = JarScanningCordappLoader.fromJarUrls(listOf(jar), VersionInfo.UNKNOWN)
         // exclude the core cordapp
-        val cordapp = loader.cordapps.filter { it.cordappClasses.contains("net.corda.core.internal.cordapp.CordappImpl")}.single()
-        assertThat(cordapp.info.targetPlatformVersion).isEqualTo(2)
-        assertThat(cordapp.info.minimumPlatformVersion).isEqualTo(2)
+        val cordapp = loader.cordapps.single { it.cordappClasses.contains("net.corda.core.internal.cordapp.CordappImpl")}
+        assertThat(cordapp.targetPlatformVersion).isEqualTo(2)
+        assertThat(cordapp.minimumPlatformVersion).isEqualTo(2)
     }
 
     @Test
@@ -166,8 +165,7 @@ class JarScanningCordappLoaderTest {
         assertThat(loader.cordapps.size).isEqualTo(2)
     }
 
-    private fun cordappLoaderForPackages(packages: Iterable<String>, versionInfo: VersionInfo = VersionInfo.UNKNOWN): CordappLoader {
-
+    private fun cordappLoaderForPackages(packages: Iterable<String>): CordappLoader {
         val cordapps = cordappsForPackages(packages)
         return testDirectory().let { directory ->
             cordapps.packageInDirectory(directory)
@@ -176,7 +174,6 @@ class JarScanningCordappLoaderTest {
     }
 
     private fun testDirectory(): Path {
-
         return Paths.get("build", getTimestampAsDirectoryName())
     }
 }

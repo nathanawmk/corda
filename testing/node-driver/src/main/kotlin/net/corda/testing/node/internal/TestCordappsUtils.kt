@@ -24,11 +24,16 @@ import kotlin.reflect.KClass
  * @param path The path of the JAR.
  * @param willResourceBeAddedBeToCorDapp A filter for the inclusion of [JarEntryInfo] in the JAR.
  */
-internal fun Iterable<JarEntryInfo>.packageToCorDapp(path: Path, name: String, version: String, vendor: String, title: String = name, willResourceBeAddedBeToCorDapp: (String, URL) -> Boolean = { _, _ -> true }) {
-
+internal fun Iterable<JarEntryInfo>.packageToCorDapp(path: Path,
+                                                     name: String,
+                                                     version: String,
+                                                     vendor: String,
+                                                     targetVersion: Int,
+                                                     title: String = name,
+                                                     willResourceBeAddedBeToCorDapp: (String, URL) -> Boolean = { _, _ -> true }) {
     var hasContent = false
     try {
-        hasContent = packageToCorDapp(path.outputStream(), name, version, vendor, title, willResourceBeAddedBeToCorDapp)
+        hasContent = packageToCorDapp(path.outputStream(), name, version, vendor, targetVersion, title, willResourceBeAddedBeToCorDapp)
     } finally {
         if (!hasContent) {
             path.deleteIfExists()
@@ -41,9 +46,14 @@ internal fun Iterable<JarEntryInfo>.packageToCorDapp(path: Path, name: String, v
  * @param outputStream The [OutputStream] for the JAR.
  * @param willResourceBeAddedBeToCorDapp A filter for the inclusion of [JarEntryInfo] in the JAR.
  */
-internal fun Iterable<JarEntryInfo>.packageToCorDapp(outputStream: OutputStream, name: String, version: String, vendor: String, title: String = name, willResourceBeAddedBeToCorDapp: (String, URL) -> Boolean = { _, _ -> true }): Boolean {
-
-    val manifest = createTestManifest(name, title, version, vendor)
+internal fun Iterable<JarEntryInfo>.packageToCorDapp(outputStream: OutputStream,
+                                                     name: String,
+                                                     version: String,
+                                                     vendor: String,
+                                                     targetVersion: Int,
+                                                     title: String = name,
+                                                     willResourceBeAddedBeToCorDapp: (String, URL) -> Boolean = { _, _ -> true }): Boolean {
+    val manifest = createTestManifest(name, title, version, vendor, targetVersion)
     return JarOutputStream(outputStream, manifest).use { jos -> zip(jos, willResourceBeAddedBeToCorDapp) }
 }
 
@@ -77,16 +87,14 @@ fun allClassesForPackage(targetPackage: String): Set<Class<*>> {
 /**
  * Maps each package to a [TestCorDapp] with resources found in that package.
  */
-fun cordappsForPackages(packages: Iterable<String>): Set<TestCorDapp> {
-
+fun cordappsForPackages(packages: Iterable<String>): Set<TestCorDapp.Mutable> {
     return simplifyScanPackages(packages).toSet().fold(emptySet()) { all, packageName -> all + testCorDapp(packageName) }
 }
 
 /**
  * Maps each package to a [TestCorDapp] with resources found in that package.
  */
-fun cordappsForPackages(firstPackage: String, vararg otherPackages: String): Set<TestCorDapp> {
-
+fun cordappsForPackages(firstPackage: String, vararg otherPackages: String): Set<TestCorDapp.Mutable> {
     return cordappsForPackages(setOf(*otherPackages) + firstPackage)
 }
 
@@ -110,11 +118,11 @@ fun getCallerPackage(directCallerClass: KClass<*>): String? {
 /**
  * Returns a [TestCorDapp] containing resources found in [packageName].
  */
-internal fun testCorDapp(packageName: String): TestCorDapp {
-
+internal fun testCorDapp(packageName: String): TestCorDapp.Mutable {
     val uuid = UUID.randomUUID()
     val name = "$packageName-$uuid"
     val version = "$uuid"
+    println("testCorDapp: $name")
     return TestCorDapp.Factory.create(name, version).plusPackage(packageName)
 }
 

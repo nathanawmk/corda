@@ -1,7 +1,10 @@
 package net.corda.node.services
 
+import co.paralleluniverse.fibers.Suspendable
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FinalityFlow
+import net.corda.core.flows.FlowLogic
+import net.corda.core.flows.StartableByRPC
 import net.corda.core.flows.StateMachineRunId
 import net.corda.core.toFuture
 import net.corda.core.transactions.SignedTransaction
@@ -16,10 +19,7 @@ import net.corda.testing.core.ALICE_NAME
 import net.corda.testing.core.BOB_NAME
 import net.corda.testing.core.singleIdentity
 import net.corda.testing.driver.TestCorDapp
-import net.corda.testing.node.internal.InternalMockNetwork
-import net.corda.testing.node.internal.InternalMockNodeParameters
-import net.corda.testing.node.internal.TestStartedNode
-import net.corda.testing.node.internal.startFlow
+import net.corda.testing.node.internal.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Test
@@ -36,7 +36,7 @@ class FinalityHandlerTest {
     fun `sent to flow hospital on error and attempted retry on node restart`() {
         // Setup a network where only Alice has the finance CorDapp and it sends a cash tx to Bob who doesn't have the
         // CorDapp. Bob's FinalityHandler will error when validating the tx.
-        mockNet = InternalMockNetwork()
+        mockNet = InternalMockNetwork(cordappsForAllNodes = cordappsForPackages("net.corda.node.services").map { it.withTargetVersion(3) }.toSet())
 
         val assertCordapp = TestCorDapp.Factory.create("net.corda.finance.contracts.asset", "1.0").plusPackage("net.corda.finance.contracts.asset")
         val alice = mockNet.createNode(InternalMockNodeParameters(legalName = ALICE_NAME, additionalCordapps = setOf(assertCordapp)))
@@ -59,7 +59,7 @@ class FinalityHandlerTest {
                 .map { it.logic.runId }
                 .toFuture()
 
-        val finalisedTx = alice.services.startFlow(FinalityFlow(stx)).run {
+        val finalisedTx = alice.services.startFlow(CallOldFinalityFlow(stx)).run {
             mockNet.runNetwork()
             resultFuture.getOrThrow()
         }
@@ -90,5 +90,12 @@ class FinalityHandlerTest {
         return database.transaction {
             services.validatedTransactions.getTransaction(id)
         }
+    }
+
+    @StartableByRPC
+    class CallOldFinalityFlow(private val stx: SignedTransaction) : FlowLogic<SignedTransaction>() {
+        @Suspendable
+        @Suppress("DEPRECATION")
+        override fun call(): SignedTransaction = subFlow(FinalityFlow(stx))
     }
 }

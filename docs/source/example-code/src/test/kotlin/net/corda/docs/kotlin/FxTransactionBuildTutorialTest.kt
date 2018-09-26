@@ -1,11 +1,9 @@
-package net.corda.docs
+package net.corda.docs.kotlin
 
 import net.corda.core.identity.Party
 import net.corda.core.toFuture
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
-import net.corda.docs.kotlin.ForeignExchangeFlow
-import net.corda.docs.kotlin.ForeignExchangeRemoteFlow
 import net.corda.finance.DOLLARS
 import net.corda.finance.GBP
 import net.corda.finance.POUNDS

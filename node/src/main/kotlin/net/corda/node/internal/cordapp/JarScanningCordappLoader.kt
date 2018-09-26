@@ -27,6 +27,7 @@ import java.net.URLClassLoader
 import java.nio.file.Path
 import java.util.*
 import java.util.jar.JarInputStream
+import java.util.jar.Manifest
 import kotlin.reflect.KClass
 import kotlin.streams.toList
 
@@ -105,42 +106,57 @@ class JarScanningCordappLoader private constructor(private val cordappJarPaths: 
             serializationWhitelists = listOf(),
             serializationCustomSerializers = listOf(),
             customSchemas = setOf(),
-            info = CordappImpl.Info("corda-core", versionInfo.vendor, versionInfo.releaseVersion, 1, versionInfo.platformVersion),
             allFlows = listOf(),
             jarPath = ContractUpgradeFlow.javaClass.location, // Core JAR location
-            jarHash = SecureHash.allOnesHash
+            jarHash = SecureHash.allOnesHash,
+            shortName = "corda-core",
+            vendor = versionInfo.vendor,
+            version = versionInfo.releaseVersion,
+            minimumPlatformVersion = 1,
+            targetPlatformVersion = versionInfo.platformVersion
     )
 
     private fun loadCordapps(): List<CordappImpl> {
         val cordapps = cordappJarPaths.map { scanCordapp(it).toCordapp(it) }
                 .filter {
-                    if (it.info.minimumPlatformVersion > versionInfo.platformVersion) {
-                        logger.warn("Not loading CorDapp ${it.info.shortName} (${it.info.vendor}) as it requires minimum platform version ${it.info.minimumPlatformVersion} (This node is running version ${versionInfo.platformVersion}).")
+                    if (it.minimumPlatformVersion > versionInfo.platformVersion) {
+                        logger.warn("Not loading CorDapp ${it.shortName} (${it.vendor}) as it requires minimum platform " +
+                                "version ${it.minimumPlatformVersion} (This node is running version ${versionInfo.platformVersion}).")
                         false
                     } else {
                         true
                     }
                 }
-        cordapps.forEach { CordappInfoResolver.register(it.cordappClasses, it.info) }
+        cordapps.forEach(CordappInfoResolver::register)
         return cordapps
     }
 
     private fun RestrictedScanResult.toCordapp(url: RestrictedURL): CordappImpl {
-        val info = url.url.openStream().let(::JarInputStream).use { it.manifest }.toCordappInfo(CordappImpl.jarName(url.url))
+        val manifest: Manifest? = url.url.openStream().let(::JarInputStream).use { it.manifest }
+        val defaultShortName = CordappImpl.jarName(url.url)
+        val shortName = manifest?.get("Name") ?: defaultShortName
+        val vendor = manifest?.get("Implementation-Vendor") ?: CordappImpl.UNKNOWN_VALUE
+        val version = manifest?.get("Implementation-Version") ?: CordappImpl.UNKNOWN_VALUE
+        val minPlatformVersion = manifest?.get("Min-Platform-Version")?.toIntOrNull() ?: 1
+        val targetPlatformVersion = manifest?.get("Target-Platform-Version")?.toIntOrNull() ?: minPlatformVersion
         return CordappImpl(
-                findContractClassNames(this),
-                findInitiatedFlows(this),
-                findRPCFlows(this),
-                findServiceFlows(this),
-                findSchedulableFlows(this),
-                findServices(this),
-                findPlugins(url),
-                findSerializers(this),
-                findCustomSchemas(this),
-                findAllFlows(this),
-                url.url,
-                info,
-                getJarHash(url.url)
+                contractClassNames = findContractClassNames(this),
+                initiatedFlows = findInitiatedFlows(this),
+                rpcFlows = findRPCFlows(this),
+                serviceFlows = findServiceFlows(this),
+                schedulableFlows = findSchedulableFlows(this),
+                services = findServices(this),
+                serializationWhitelists = findPlugins(url),
+                serializationCustomSerializers = findSerializers(this),
+                customSchemas = findCustomSchemas(this),
+                allFlows = findAllFlows(this),
+                jarPath = url.url,
+                jarHash = getJarHash(url.url),
+                shortName = shortName,
+                vendor = vendor,
+                version = version,
+                minimumPlatformVersion = minPlatformVersion,
+                targetPlatformVersion = targetPlatformVersion
         )
     }
 
