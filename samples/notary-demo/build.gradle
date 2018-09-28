@@ -85,7 +85,9 @@ task deployNodesRaft(type: Cordform, dependsOn: 'jar') {
     directory file("$buildDir/nodes/nodesRaft")
     nodeDefaults {
         extraConfig = [h2Settings: [address: "localhost:0"]]
-        cordapp project(':experimental:notary-raft')
+        cordapp project(':experimental:notary-raft') {
+            config = '[ test: true]'
+        }
     }
     node {
         name "O=Alice Corp,L=Madrid,C=ES"

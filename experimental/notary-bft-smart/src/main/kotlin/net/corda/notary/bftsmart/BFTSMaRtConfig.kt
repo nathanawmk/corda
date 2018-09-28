@@ -13,6 +13,17 @@ import java.net.SocketException
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit.MILLISECONDS
 
+data class BFTSMaRtConfiguration(
+        val replicaId: Int,
+        val clusterAddresses: List<NetworkHostAndPort>,
+        val debug: Boolean = false,
+        val exposeRaces: Boolean = false
+) {
+    init {
+        require(replicaId >= 0) { "replicaId cannot be negative" }
+    }
+}
+
 /**
  * BFT SMaRt can only be configured via files in a configHome directory.
  * Each instance of this class creates such a configHome, accessible via [path].
