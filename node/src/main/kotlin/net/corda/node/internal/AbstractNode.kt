@@ -786,14 +786,11 @@ abstract class AbstractNode<S>(val configuration: NodeConfiguration,
 
     private fun makeNotaryService(myNotaryIdentity: PartyAndCertificate?): NotaryService? {
         return configuration.notary?.let { notaryConfig ->
+            val serviceClass = getNotaryServiceClass(notaryConfig.className)
+            log.info("Starting notary service: $serviceClass")
+
             val notaryKey = myNotaryIdentity?.owningKey
-                    ?: throw IllegalArgumentException("No notary identity initialized when creating a notary service")
-
-            val loadedImplementations = cordappLoader.cordapps.mapNotNull { it.notaryService }
-            log.info("Notary service implementations found: ${loadedImplementations.joinToString(", ")}")
-            val serviceClass = loadedImplementations.firstOrNull { it.name == notaryConfig.className }
-                    ?: throw IllegalArgumentException("The notary service implementation specified in the configuration: ${notaryConfig.className} is not found. Available implementations: ${loadedImplementations.joinToString(", ")}}")
-
+                    ?: throw IllegalArgumentException("Unable to start notary service $serviceClass: notary identity not found")
             val constructor = serviceClass.getDeclaredConstructor(ServiceHubInternal::class.java, PublicKey::class.java).apply { isAccessible = true }
             val service = constructor.newInstance(services, notaryKey) as NotaryService
 
@@ -801,11 +798,17 @@ abstract class AbstractNode<S>(val configuration: NodeConfiguration,
                 tokenize()
                 runOnStop += ::stop
                 installCoreFlow(NotaryFlow.Client::class, ::createServiceFlow)
-                log.info("Starting notary service: ${javaClass.name}")
                 start()
             }
             return service
         }
+    }
+
+    private fun getNotaryServiceClass(className: String): Class<out NotaryService> {
+        val loadedImplementations = cordappLoader.cordapps.mapNotNull { it.notaryService }
+        log.debug("Notary service implementations found: ${loadedImplementations.joinToString(", ")}")
+        return loadedImplementations.firstOrNull { it.name == className }
+                ?: throw IllegalArgumentException("The notary service implementation specified in the configuration: $className is not found. Available implementations: ${loadedImplementations.joinToString(", ")}}")
     }
 
     protected open fun makeKeyManagementService(identityService: PersistentIdentityService): KeyManagementServiceInternal {

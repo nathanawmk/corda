@@ -27,9 +27,9 @@ class SimpleNotaryService(override val services: ServiceHubInternal, override va
 }
 
 // Entities used by a Notary
-object NodeNotary
+object NodeNotarySchema
 
-object NodeNotaryV1 : MappedSchema(schemaFamily = NodeNotary.javaClass, version = 1,
+object NodeNotarySchemaV1 : MappedSchema(schemaFamily = NodeNotarySchema.javaClass, version = 1,
         mappedTypes = listOf(PersistentUniquenessProvider.BaseComittedState::class.java,
                 PersistentUniquenessProvider.Request::class.java,
                 PersistentUniquenessProvider.CommittedState::class.java

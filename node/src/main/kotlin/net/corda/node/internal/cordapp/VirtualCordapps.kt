@@ -5,7 +5,7 @@ import net.corda.core.flows.ContractUpgradeFlow
 import net.corda.core.internal.cordapp.CordappImpl
 import net.corda.core.internal.location
 import net.corda.node.VersionInfo
-import net.corda.node.services.transactions.NodeNotaryV1
+import net.corda.node.services.transactions.NodeNotarySchemaV1
 import net.corda.node.services.transactions.SimpleNotaryService
 
 internal object VirtualCordapp {
@@ -48,7 +48,7 @@ internal object VirtualCordapp {
                 services = listOf(),
                 serializationWhitelists = listOf(),
                 serializationCustomSerializers = listOf(),
-                customSchemas = setOf(NodeNotaryV1),
+                customSchemas = setOf(NodeNotarySchemaV1),
                 info = CordappImpl.Info("corda-notary", versionInfo.vendor, versionInfo.releaseVersion),
                 allFlows = listOf(),
                 jarPath = SimpleNotaryService::class.java.location,
