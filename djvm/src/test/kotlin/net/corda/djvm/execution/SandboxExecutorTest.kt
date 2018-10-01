@@ -526,7 +526,7 @@ class SandboxExecutorTest : TestBase() {
     }
 
     @Test
-    fun `check System-arraycopy still works`() = sandbox(DEFAULT) {
+    fun `check System-arraycopy still works with Objects`() = sandbox(DEFAULT) {
         val source = arrayOf("one", "two", "three")
         assertThat(TestArrayCopy().apply(source))
             .isEqualTo(source)
@@ -543,6 +543,25 @@ class SandboxExecutorTest : TestBase() {
     class TestArrayCopy : Function<Array<String>, Array<String>> {
         override fun apply(input: Array<String>): Array<String> {
             val newArray = Array(input.size) { "" }
+            System.arraycopy(input, 0, newArray, 0, newArray.size)
+            return newArray
+        }
+    }
+
+    @Test
+    fun `test System-arraycopy still works with CharArray`() = sandbox(DEFAULT) {
+        val source = CharArray(10) { '?' }
+        val contractExecutor = DeterministicSandboxExecutor<CharArray, CharArray>(configuration)
+        contractExecutor.run<TestCharArrayCopy>(source).apply {
+            assertThat(result)
+                .isEqualTo(source)
+                .isNotSameAs(source)
+        }
+    }
+
+    class TestCharArrayCopy : Function<CharArray, CharArray> {
+        override fun apply(input: CharArray): CharArray {
+            val newArray = CharArray(input.size) { 'X' }
             System.arraycopy(input, 0, newArray, 0, newArray.size)
             return newArray
         }
